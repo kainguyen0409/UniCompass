@@ -1,7 +1,7 @@
 // Curated final 2025 cutoffs copied from official HUST records.
 // A later publication date does not change the admission year: historical tables
 // below are read ONLY from their explicitly labelled 2025 column.
-// No cutoff is calculated from another method. See docs/data-hust-2025.md.
+// No cutoff is calculated from another method.
 // Categories are search labels chosen for this demo, not official HUST groupings.
 
 type PublishedProgram = {

@@ -1,6 +1,5 @@
 // Transcribed from FTU's final 2025 cutoff notice, tables 1–5.
 // All scores below are published values; no score conversions are calculated here.
-// See docs/data-ftu-2025.md for source pages, scope and exclusions.
 type Program = [code: string, name: string, campus: string, categories: string[]];
 type CombinedProgram = [...Program, score: number];
 type StandardProgram = [...Program, thpt: number, hsa: number, vact: number];

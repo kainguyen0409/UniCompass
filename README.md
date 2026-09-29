@@ -129,30 +129,9 @@ Selecting **“Tất cả”** explores the full demo dataset without overwritin
 
 - **UET:** All 20 programs in the final announcement, on the common 30-point admission scale.
 - **NEU:** 68 named programs on the common 30-point scale. Five umbrella high-quality/advanced codes are omitted pending verification of their major mappings.
-- **HUST:** A verified subset of THPT and TSA results, plus separately verified XTTN 1.3 results. XTTN 1.2 is omitted because its original table could not be inspected. Later official documents are used only for explicitly labeled 2025 columns. See the [HUST data notes](docs/data-hust-2025.md).
-- **FTU:** Program, campus, and method distinctions are preserved. Published HSA/V-ACT figures already converted by FTU are labeled as converted scores, not raw exam results. See the [FTU data notes](docs/data-ftu-2025.md).
+- **HUST:** A verified subset of THPT and TSA results, plus separately verified XTTN 1.3 results. XTTN 1.2 is omitted because its original table could not be inspected. Later official documents are used only for explicitly labeled 2025 columns.
+- **FTU:** Program, campus, and method distinctions are preserved. Published HSA/V-ACT figures already converted by FTU are labeled as converted scores, not raw exam results.
 
-## Development
-
-### Project structure
-
-```text
-client/
-  src/
-    components/       Cutoff explorer, interest picker, and dialogs
-    lib/              API helpers, filtering, and progress persistence
-    App.tsx           Main application and admissions roadmap
-server/
-  src/
-    data/             University catalogs, cutoff records, and validation
-    middleware/       JWT authentication
-    routes/           Authentication, progress, and public data endpoints
-    schema.sql        Database schema and incremental updates
-    seed.ts           Demo data import
-    index.ts          API and production frontend server
-  tests/              Data integrity, route, and validation tests
-docs/                 Detailed data provenance and coverage notes
-```
 
 ### Commands
 
@@ -180,5 +159,5 @@ When adding or correcting a record:
 1. Read the university’s official final admission announcement.
 2. Confirm the year, admission round, program code, campus, method, subject-group basis, and score scale.
 3. Record the published value and its source without inferring missing scores or applying conversions.
-4. Update the relevant provenance notes and coverage counts if needed.
+4. Update the source references and notes in the data file, and the README coverage counts if needed.
 5. Run `npm test` and `npm run build` before submitting the change.
