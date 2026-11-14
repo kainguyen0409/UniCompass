@@ -12,6 +12,7 @@ import milestonesRouter from "./routes/milestones.js";
 import benchmarksRouter from "./routes/benchmarks.js";
 import sourcesRouter from "./routes/sources.js";
 import progressRouter from "./routes/progress.js";
+import assistantRouter from "./routes/assistant.js";
 import catalogRouter from "./routes/catalog.js";
 
 const app = express();
@@ -19,7 +20,7 @@ const PORT = process.env.PORT || 3001;
 
 // Allow requests from the Vite dev server
 app.use(cors({ origin: process.env.CLIENT_ORIGIN || "http://localhost:5173" }));
-app.use(express.json());
+app.use(express.json({ limit: "128kb" }));
 
 // Routes
 app.use("/api/auth", authRouter);
@@ -28,6 +29,7 @@ app.use("/api/benchmarks", benchmarksRouter);
 app.use("/api/sources", sourcesRouter);
 app.use("/api/progress", progressRouter);
 app.use("/api/catalog", catalogRouter);
+app.use("/api/assistant", assistantRouter);
 
 // Health check
 app.get("/api/health", (_req, res) => {
@@ -48,9 +50,9 @@ if (process.env.NODE_ENV === "production") {
 }
 
 app.use((error: { status?: number }, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  const status = error.status === 400 ? 400 : 500;
+  const status = error.status === 400 ? 400 : error.status === 413 ? 413 : 500;
   if (status === 500) console.error(error);
-  res.status(status).json({ error: status === 400 ? "Dữ liệu gửi lên chưa đúng." : "Có lỗi kết nối. Bạn thử lại nhé." });
+  res.status(status).json({ error: status === 400 ? "Dữ liệu gửi lên chưa đúng." : status === 413 ? "Dữ liệu gửi lên quá dài." : "Có lỗi kết nối. Bạn thử lại nhé." });
 });
 
 const server = app.listen(PORT, () => {

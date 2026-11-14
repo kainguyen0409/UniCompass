@@ -4,7 +4,8 @@ import type { Benchmark, Catalog, Interests } from "../types";
 
 // Turn the cutoff records into searchable program cards. A card can contain several
 // admission methods, each shown with the score scale published by its university.
-export function BenchmarksView({ benchmarks, catalog, interests, disabled, onEditInterests, SourceBadge }: {
+export function BenchmarksView({ benchmarks, catalog, interests, disabled, onEditInterests, SourceBadge, focusedProgram, onClearFocus }: {
+  focusedProgram?: string | null; onClearFocus?: () => void;
   benchmarks: Benchmark[]; catalog: Catalog; interests: Interests; disabled: boolean;
   onEditInterests: () => void;
   SourceBadge: ({ sourceId }: { sourceId: string }) => React.ReactNode;
@@ -23,6 +24,7 @@ export function BenchmarksView({ benchmarks, catalog, interests, disabled, onEdi
   // Apply all filters first, then collect matching methods under their program card.
   // Every search word must appear somewhere in the school, program, code, or campus text.
   const groups = useMemo(() => {
+    if (focusedProgram) return groupBenchmarks(benchmarks).filter(group => group.id === focusedProgram);
     const words = searchText(query).split(/\s+/).filter(Boolean);
     return groupBenchmarks(benchmarks.filter((item) => {
       const school = catalog.universities.find((entry) => entry.id === item.universityId);
@@ -32,7 +34,7 @@ export function BenchmarksView({ benchmarks, catalog, interests, disabled, onEdi
         && (!category || item.categoryIds.includes(category))
         && words.every((word) => searchable.includes(word));
     }));
-  }, [benchmarks, catalog, interests, scope, query, university, category]);
+  }, [benchmarks, catalog, interests, scope, query, university, category, focusedProgram]);
 
   // Start each new search with 12 cards; "show more" only expands the current results.
   useEffect(() => setLimit(12), [query, university, category, scope, interests]);
@@ -43,7 +45,7 @@ export function BenchmarksView({ benchmarks, catalog, interests, disabled, onEdi
 
   // The empty-state button clears every filter, including the saved-interest restriction.
   function showAll() {
-    setScope("all"); setQuery(""); setUniversity(""); setCategory("");
+    onClearFocus?.(); setScope("all"); setQuery(""); setUniversity(""); setCategory("");
   }
 
   return (
@@ -65,7 +67,8 @@ export function BenchmarksView({ benchmarks, catalog, interests, disabled, onEdi
           onClick={onEditInterests}>{hasInterests ? "Đổi sở thích" : "Chọn sở thích"}</button>
       </div>
 
-      <div className="cutoff-controls">
+      {focusedProgram && <p className="feedback-banner">Chương trình từ trợ lý <button type="button" onClick={showAll}>Xóa bộ lọc chương trình</button></p>}
+      <div className="cutoff-controls" hidden={!!focusedProgram}>
         <div className="filter-set" role="group" aria-label="Phạm vi điểm chuẩn">
           <button type="button" className={`filter-button ${scope === "interests" ? "is-active" : ""}`}
             aria-pressed={scope === "interests"} onClick={() => setScope("interests")}>Theo sở thích</button>

@@ -1,5 +1,6 @@
 import { RoadmapIntro } from "./components/RoadmapIntro";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AssistantPanel } from "./components/AssistantPanel";
 import { Dialog } from "./components/Dialog";
 import { apiFetch } from "./lib/api";
 import { useProgress } from "./lib/useProgress";
@@ -24,6 +25,8 @@ const routes: Record<RouteId, RouteInfo> = {
 // This is where the page comes together: shared data and account state live here,
 // while the view components below handle what the student sees and clicks.
 function App() {
+  const [focusedProgram, setFocusedProgram] = useState<string | null>(null);
+  const [focusedMilestone, setFocusedMilestone] = useState<string | null>(null);
   const [view, setView] = useState<View>("roadmap");
   const [routeFilter, setRouteFilter] = useState<RouteFilter>("all");
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
@@ -31,7 +34,7 @@ function App() {
   const [showAuth, setShowAuth] = useState(false);
   const [showInterests, setShowInterests] = useState(false);
   const {
-    user, progress: { completedTaskIds, interests }, updateProgress, login, logout,
+    authToken, assistantSessionKey, user, progress: { completedTaskIds, interests }, updateProgress, login, logout,
     sessionLoading, sessionError, sessionNotice, saveStatus, retrySession, retrySave
   } = useProgress();
   // Wait until saved progress is available before letting the student change it.
@@ -99,6 +102,14 @@ function App() {
   const completedCount = filteredMilestones.filter((m) => completedTaskIds.includes(m.id)).length;
   const completion = filteredMilestones.length
     ? Math.round(completedCount / filteredMilestones.length * 100) : 0;
+
+  useEffect(() => { setFocusedProgram(null); setFocusedMilestone(null); }, [user?.id]);
+  useEffect(() => {
+    if (view !== "roadmap" || !focusedMilestone) return;
+    const element = document.getElementById(`milestone-${focusedMilestone}`);
+    element?.scrollIntoView({ behavior: "smooth", block: "center" });
+    element?.focus({ preventScroll: true });
+  }, [view, routeFilter, focusedMilestone]);
 
   // Scroll to the workspace area when switching views
   function navigateTo(nextView: View) {
@@ -278,6 +289,8 @@ function App() {
           {view === "benchmarks" && !dataErrors.includes("điểm chuẩn") && (
             <BenchmarksView
               key={user?.id ?? "guest"}
+              focusedProgram={focusedProgram}
+              onClearFocus={() => setFocusedProgram(null)}
               benchmarks={benchmarks}
               catalog={catalog}
               interests={interests}
@@ -294,6 +307,14 @@ function App() {
       </main>
 
       <footer className="site-footer"><strong>Lộ Trình / Đại Học</strong><span>Từng bước, một hướng đi của riêng bạn.</span><span>Dữ liệu tham khảo · 2025</span></footer>
+      <AssistantPanel key={assistantSessionKey} token={authToken}
+        disabled={editingDisabled || saveStatus === "saving" || saveStatus === "error"}
+        context={{ view, route: routeFilter }} onSignIn={() => setShowAuth(true)}
+        onNavigate={action => {
+          if (action.kind === "source") setSelectedSource(action.source);
+          else if (action.kind === "program") { setFocusedProgram(action.programRef); navigateTo("benchmarks"); }
+          else { setRouteFilter("all"); setFocusedMilestone(action.milestone.id); setView("roadmap"); }
+        }} />
 
       {/* Source detail drawer */}
       {selectedSource && (
@@ -604,7 +625,7 @@ function RoadmapView({
           // Completion comes from the student's saved IDs, not the demo status on the task.
           const complete = completedTaskIds.includes(milestone.id);
           return (
-            <article className={`timeline-item ${complete ? "is-complete" : ""}`} key={milestone.id}>
+            <article id={`milestone-${milestone.id}`} tabIndex={-1} className={`timeline-item ${complete ? "is-complete" : ""}`} key={milestone.id}>
               <div className="timeline-rail" aria-hidden="true">
                 <span>{complete ? "✓" : index + 1}</span>
               </div>
