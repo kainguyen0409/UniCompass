@@ -1,3 +1,4 @@
+import { RoadmapIntro } from "./components/RoadmapIntro";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Dialog } from "./components/Dialog";
 import { apiFetch } from "./lib/api";
@@ -103,7 +104,10 @@ function App() {
   function navigateTo(nextView: View) {
     setView(nextView);
     requestAnimationFrame(() => {
-      document.getElementById("workspace")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      const workspace = document.getElementById("workspace");
+      const heading = workspace?.querySelector<HTMLElement>("h1, h2");
+      if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
+      workspace?.scrollIntoView({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
     });
   }
 
@@ -155,6 +159,7 @@ function App() {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#workspace">Đến nội dung chính</a>
       {/* Header + nav */}
       <header className="site-header">
         <a className="brand" href="#top" onClick={() => setView("roadmap")}>
@@ -216,32 +221,10 @@ function App() {
           <button onClick={() => navigateTo("sources")} type="button">Xem nguồn →</button>
         </section>
 
-        {/* Student profile strip with route filter pills */}
-        <section className="profile-strip">
-          <div className="profile-intro">
-            <span className="profile-kicker">{user ? "Hồ sơ" : "Dùng thử"}</span>
-            <strong>{user ? user.name : "Khách"}</strong>
-            <span>{user ? (user.grade || "Đã đăng nhập") : "Không cần tài khoản"}</span>
-          </div>
-          {view === "roadmap" && <div className="profile-routes">
-            {routeOrder.map((route) => (
-              <button
-                className={`route-pill ${routeFilter === route ? "is-selected" : ""}`}
-                aria-pressed={routeFilter === route}
-                key={route}
-                onClick={() => {
-                  setRouteFilter(routeFilter === route ? "all" : route);
-                }}
-                type="button"
-              >
-                {routes[route].label}
-              </button>
-            ))}
-          </div>}
-        </section>
+        {view === "roadmap" && <RoadmapIntro />}
 
         {/* Filter toolbar */}
-        <div id="workspace">
+        <div id="workspace" tabIndex={-1}>
           {view === "roadmap" && <RouteControls routeFilter={routeFilter} onChange={setRouteFilter} />}
           {dataErrors.length > 0 && (
             <div className="feedback-banner is-error" role="alert">
@@ -309,6 +292,8 @@ function App() {
           )}
         </div>
       </main>
+
+      <footer className="site-footer"><strong>Lộ Trình / Đại Học</strong><span>Từng bước, một hướng đi của riêng bạn.</span><span>Dữ liệu tham khảo · 2025</span></footer>
 
       {/* Source detail drawer */}
       {selectedSource && (
