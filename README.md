@@ -161,3 +161,59 @@ When adding or correcting a record:
 3. Record the published value and its source without inferring missing scores or applying conversions.
 4. Update the source references and notes in the data file, and the README coverage counts if needed.
 5. Run `npm test` and `npm run build` before submitting the change.
+
+## Local AI assistant (Groq)
+
+“Hỏi UniCompass” uses the official OpenAI TypeScript SDK against Groq's Responses API (`https://api.groq.com/openai/v1`), model `openai/gpt-oss-120b`, and Zod validation. There is no LangChain dependency. Inference runs on Groq; React, Express, and PostgreSQL run locally. The assistant is **disabled by default pending live verification**.
+
+Keep the key on the server. In macOS zsh, enter it without displaying it or putting it in shell history:
+
+```zsh
+read -s 'GROQ_API_KEY?Groq API key: '; echo
+export GROQ_API_KEY
+```
+
+If already exported, skip that step. From this repository, use that same terminal for the live check:
+
+```zsh
+npm --prefix server run ai:verify
+```
+
+For a low Groq TPM quota, use `npm --prefix server run ai:verify -- --paced`. This evaluation-only mode waits 60 seconds before each scenario and retries HTTP 429 responses at most three times per call after the provider’s suggested delay (or 60 seconds if absent). Delays above 120 seconds stop the run. The evaluation deadline becomes at least seven minutes per scenario to accommodate waiting; the chatbot still has no automatic retries and its normal 45-second deadline. Reports separate quota wait time from total scenario duration. Allow at least 20 minutes for a paced run.
+
+This makes real, billable provider requests: five compatibility calls followed by 20 Vietnamese scenarios (up to five calls each). It checks generation, function calls, dependent calls with matching outputs, and separate structured output; then exercises the real database readers using a synthetic student's interests and no completed milestones. No account is created or modified. Provider quotas may interrupt the run. Results and measured latency are written to `/tmp/unicompass-ai-evaluation.json` (override with `AI_EVAL_REPORT`). Schema/reference passes do **not** prove the prose is correct. Review every answer against its returned records, including methods/scales, missing records, archived dates, follow-ups, sources, guarantees, and conversion refusals. Keep AI disabled if anything fails.
+
+After all checks and that review pass, stop the existing dev servers and start them in the terminal containing your key:
+
+```zsh
+AI_ENABLED=true npm run dev
+```
+
+Open localhost:5173, sign in, and use “Hỏi UniCompass.” Check a sourced answer and follow-up, open a program and source, ask about unfinished roadmap steps, then test Stop, retry, reset, closing/reopening, logout, and a different account. Also check a narrow mobile viewport. Browser conversations stay in memory across panel closes, clear on reload/account changes, and are not stored in PostgreSQL. Closing the panel cancels pending work.
+
+### Assistant configuration and limits
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `GROQ_API_KEY` | Unset | Server-only Groq credential |
+| `AI_ENABLED` | `false` | Explicit local enable switch after verification |
+| `AI_MODEL` | `openai/gpt-oss-120b` | Override requires repeating compatibility tests |
+| `AI_REQUEST_TIMEOUT_MS` | `45000` | Overall request deadline, including database reads |
+| `AI_MAX_OUTPUT_TOKENS` | `4096` | Output budget per Responses call |
+| `AI_MAX_INPUT_BYTES` | `40000` | Conservative serialized request size bound |
+| `AI_EVAL_REPORT` | `/tmp/unicompass-ai-evaluation.json` | Live evaluation report location |
+
+`GET /api/assistant/status` reports availability. `POST /api/assistant/chat` requires a valid account token. Four read-only tools share the normal API's database readers: `search_programs`, `get_program_details`, `get_my_roadmap`, and `get_sources`. Identity comes from authentication, never tool arguments. Search returns at most 12 program groups. Each turn permits four retrieval requests/four tool executions and one separate structured-answer request. No SDK retries, `store`, or `previous_response_id` are used. Cards and links come from retrieved database records; unknown references and incomplete/invalid responses are rejected. Explanatory prose still requires live evaluation.
+
+Pilot quotas: one active request per account, two globally, 20 requests per account per rolling hour, and 100 per server per rolling day. Accepted requests count even if cancelled or failed. Limits are in memory and reset when Express restarts; this is suitable for the local pilot, not multi-process production. History sent to the model is limited to ten messages/20,000 characters, and each new question to 2,000 characters. Logs contain request IDs, timing, token counts, and tool names, not prompts or credentials.
+
+Troubleshooting:
+
+- **Disabled:** Check both `AI_ENABLED=true` and `GROQ_API_KEY` in the process starting Express. Exporting a key in another terminal or adding a `.env` file does not configure an already running process.
+- **429:** Wait for the returned retry interval; this may be a local pilot quota or Groq account quota. There are no automatic retries.
+- **504:** The request exceeded the deadline. Try a narrower question; verify PostgreSQL and Groq connectivity.
+- **502:** Provider failure, incomplete output, or invalid references. Use the live verifier and request ID to investigate; do not disable validation.
+- **413:** Start a new conversation or narrow the search. The input budget prevents excessive provider requests.
+- **401:** Sign in again. Deleted accounts and expired tokens cannot use the assistant.
+
+Automated coverage runs with `npm test`; `npm run build` checks and builds both apps. These checks use a fake provider and do not establish live Groq compatibility or answer accuracy. No deployment changes are included.

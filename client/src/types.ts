@@ -82,3 +82,16 @@ export interface RouteInfo {
   detail: string;
   scale: number;
 }
+
+export interface AssistantResponse {
+  requestId: string;
+  cycle: string;
+  sections: { text: string; sourceIds: string[] }[];
+  programs: { programRef: string; records: Benchmark[] }[];
+  milestones: Milestone[];
+  sources: Source[];
+}
+export type AssistantAction =
+  | { kind: "program"; programRef: string }
+  | { kind: "milestone"; milestone: Milestone }
+  | { kind: "source"; source: Source };

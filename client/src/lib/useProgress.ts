@@ -158,6 +158,8 @@ export function useProgress() {
 
   return {
     user, progress, updateProgress, login, logout,
+    authToken: user && !sessionLoading && !sessionError ? tokenRef.current ?? undefined : undefined,
+    assistantSessionKey: `${user?.id ?? "guest"}:${generation.current}`,
     sessionLoading, sessionError, sessionNotice, saveStatus,
     retrySession: () => tokenRef.current && restoreSession(tokenRef.current),
     retrySave: () => saver.current?.flush()
